@@ -14,13 +14,13 @@ description:         Please see the README on Github at <https://github.com/mats
 
 dependencies:
 - base >= 4.7 && < 5
+- containers
 - extensible
 - lens
 - text
 
 ghc-options:
 - -Wall
-- -Werror
 
 library:
   source-dirs: src
