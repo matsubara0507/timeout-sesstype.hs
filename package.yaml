@@ -18,8 +18,14 @@ dependencies:
 - lens
 - text
 
+ghc-options:
+- -Wall
+- -Werror
+
 library:
   source-dirs: src
+  dependencies:
+  - megaparsec
 
 executables:
   timeout-sesstype-exe:
