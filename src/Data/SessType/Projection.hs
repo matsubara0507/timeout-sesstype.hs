@@ -1,33 +1,57 @@
+{-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE MultiWayIf        #-}
 {-# LANGUAGE OverloadedLabels  #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeOperators     #-}
 
 module Data.SessType.Projection where
 
-import           Control.Lens         ((&), (^.))
+import           Control.Arrow                  (second)
+import           Control.Lens                   ((<&>), (^.))
+import           Control.Monad.Reader.Class
 import           Data.Extensible
-import           Data.Map             (Map)
-import qualified Data.Map             as Map
+import           Data.Extensible.Effect.Default
+import           Data.Map                       (Map)
+import qualified Data.Map                       as Map
 import           Data.SessType.Syntax
+import           Data.Text                      (Text)
+
+type Projection t a =
+  t -> Eff '[ ReaderDef Env, EitherDef Error ] a
+
+type Env = (Participant, Gamma)
+
+updateGamma :: Var -> GlobalType -> Env -> Env
+updateGamma v g = second $ Map.insert v g
+
+type Gamma = Map Var GlobalType
+
+type Error = (Text, GlobalType)
 
 projectionAll :: GlobalType -> Map Participant LocalType
-projectionAll = (flip Map.fromSet . participants) <*> flip projection
+projectionAll =
+  snd . Map.mapEitherWithKey projection . (Map.fromSet <$> const <*> participants)
 
-projection :: Participant -> GlobalType -> LocalType
-projection p (Comm meta g') =
-  projection p g' & if
+projection :: Participant -> GlobalType -> Either Error LocalType
+projection p =
+  leaveEff . runEitherDef . flip runReaderDef (p, mempty) . projection'
+
+projection' :: Projection GlobalType LocalType
+projection' (Comm meta g') = do
+  p <- reader fst
+  projection' g' <&> if
     | meta ^. #from == p -> Send (shrink meta)
     | meta ^. #to   == p -> Recv (shrink meta)
     | otherwise -> id
-projection p (Rec var g') =
-  case projection p g' of
+projection' (Rec var g') = do
+  t' <- local (updateGamma var g') $ projection' g'
+  return $ case t' of
     RVarL _ -> CommEndL
-    t'      -> RecL var t'
-projection _ (RVar var) = RVarL var
-projection _ CommEnd = CommEndL
-projection p (Timeout meta g') =
-  TimeoutL (shrink $ #normal @= t2 <: #abend @= t3 <: meta) t1
-  where
-    t1 = projection p g'
-    t2 = projection p $ meta ^. #normal
-    t3 = projection p $ meta ^. #abend
+    _       -> RecL var t'
+projection' (RVar var) = pure $ RVarL var
+projection' CommEnd = pure CommEndL
+projection' (Timeout meta g') = do
+  t1 <- projection' g'
+  t2 <- projection' $ meta ^. #normal
+  t3 <- projection' $ meta ^. #abend
+  return $ TimeoutL (shrink $ #normal @= t2 <: #abend @= t3 <: meta) t1
