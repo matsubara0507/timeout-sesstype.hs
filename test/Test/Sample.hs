@@ -104,6 +104,30 @@ localType4B =
         Recv (#from @= "A" <: #message @= "ping" <: nil) $
           Send (#to @= "A" <: #message @= "pong" <: nil) CommEndL
 
+localType4A' :: LocalType
+localType4A' =
+  RecL "t" $
+    TimeoutL
+       ( #owner @= "A"
+      <: #delta @= ("x" `LT` 10.0)
+      <: #normal @= Send (#to @= "B" <: #message @= "ok" <: nil) CommEndL
+      <: #abend @= Send (#to @= "B" <: #message @= "fail" <: nil) (RVarL "t")
+      <: nil ) $
+        Send (#to @= "B" <: #message @= "ping" <: nil) $
+          Recv (#from @= "B" <: #message @= "pong" <: nil) CommEndL
+
+localType4A'' :: LocalType
+localType4A'' =
+  RecL "t" $
+    Recv (#from @= "B" <: #message @= "sync" <: nil) $
+    TimeoutL
+       ( #owner @= "A"
+      <: #delta @= ("x" `LT` 10.0)
+      <: #normal @= Send (#to @= "B" <: #message @= "ok" <: nil) CommEndL
+      <: #abend @= Send (#to @= "B" <: #message @= "ok" <: nil) (RVarL "t")
+      <: nil ) $
+        Send (#to @= "B" <: #message @= "ping" <: nil) $
+          Recv (#from @= "B" <: #message @= "pong" <: nil) CommEndL
 
 -- A -> B : l1 . A -> C : l2 . B -> C : l3 . end
 globalType5 :: GlobalType
