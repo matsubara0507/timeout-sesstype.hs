@@ -21,7 +21,7 @@ import qualified Data.Set                       as Set
 import           Data.Text                      (Text)
 
 type Projection t a =
-  t -> Eff '[ ReaderDef Env, EitherDef Error ] a
+  t -> Eff '[ ReaderDef Env, EitherDef ProjectionError ] a
 
 type Env = (Participant, Gamma)
 
@@ -30,13 +30,13 @@ updateGamma v g = second $ Map.insert v g
 
 type Gamma = Map Var GlobalType
 
-type Error = (Text, GlobalType)
+type ProjectionError = (Text, GlobalType)
 
 projectionAll :: GlobalType -> Map Participant LocalType
 projectionAll =
   snd . Map.mapEitherWithKey projection . (Map.fromSet <$> const <*> participants)
 
-projection :: Participant -> GlobalType -> Either Error LocalType
+projection :: Participant -> GlobalType -> Either ProjectionError LocalType
 projection p =
   leaveEff . runEitherDef . flip runReaderDef (p, mempty) . projection'
 
