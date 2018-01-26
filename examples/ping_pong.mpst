@@ -1,0 +1,1 @@
+*t . Client -> Server : sync . Server -> Client : ok . Client -> BackupServer : sync . BackupServer -> Client : ok . Client@[x < 10.0, Client -> Server : ping . Server -> Client : pong . end] . (t, Client -> BackupServer : ping . BackupServer -> Client : pong . t)
