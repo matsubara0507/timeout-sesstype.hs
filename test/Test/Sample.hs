@@ -30,7 +30,7 @@ localType2B :: LocalType
 localType2B =
   RecL "t" $ Recv (#from @= "A" <: #message @= "hello" <: nil) $ RVarL "t"
 
--- A@[x < 10, A -> B : ping . B -> A : pong . end] . (A -> B : ok . end, A -> B : fail . end)
+-- A@[x < 10.0, A -> B : ping . B -> A : pong . end] . (A -> B : ok . end, A -> B : fail . end)
 globalType3 :: GlobalType
 globalType3 =
   Timeout
@@ -64,7 +64,7 @@ localType3B =
       Recv (#from @= "A" <: #message @= "ping" <: nil) $
         Send (#to @= "A" <: #message @= "pong" <: nil) CommEndL
 
--- *t . B -> A : sync . A@[x < 10, A -> B : ping . B -> A : pong . end] . (A -> B : ok . end, A -> B : fail . t)
+-- *t . B -> A : sync . A@[x < 10.0, A -> B : ping . B -> A : pong . end] . (A -> B : ok . end, A -> B : fail . t)
 globalType4 :: GlobalType
 globalType4 =
   Rec "t" $
