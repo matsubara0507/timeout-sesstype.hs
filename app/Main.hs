@@ -5,11 +5,11 @@
 
 module Main where
 
-import           Control.Lens        ((^.))
+import           Control.Lens        ((&), (^.))
 import           Data.Extensible
 import           Data.Monoid         ((<>))
 import           Data.SessType
-import           Data.Text           (Text, pack)
+import           Data.Text           (Text, pack, unpack)
 import qualified Data.Text.IO        as T
 import           Options.Applicative
 
@@ -17,7 +17,14 @@ main :: IO ()
 main = do
   opts <- execParser $
     options `withInfo` "A command-line interface to the sesstype mini language"
-  T.putStrLn $ exec (opts ^. #subcmd) (opts ^. #input)
+  txt <-
+    case opts ^. #input of
+      Just file -> T.readFile (unpack file)
+      Nothing   -> T.getContents
+  exec (opts ^. #subcmd) txt &
+    case opts ^. #output of
+      Just file -> T.writeFile (unpack file)
+      Nothing   -> T.putStrLn
 
 exec :: Cmd -> Text -> Text
 exec ParseCmd = maybe "cannot parse." pretty . readGlobalType
@@ -35,7 +42,8 @@ eshow (emessage, g) = mconcat [emessage, " on: ", pretty g]
 
 type Options = Record
   '[ "subcmd" >: Cmd
-   , "input"  >: Text
+   , "output" >: Maybe Text
+   , "input"  >: Maybe Text
    ]
 
 data Cmd
@@ -47,7 +55,8 @@ type ProjectCmdOpts = Record '[ "role" >: Maybe Participant ]
 options :: Parser Options
 options = hsequence
    $ #subcmd <@=> cmdParser
-  <: #input  <@=> textArgument (metavar "inputs" <> help "Input global type")
+  <: #output <@=> outputParser
+  <: #input  <@=> inputParser
   <: nil
 
 cmdParser :: Parser Cmd
@@ -67,10 +76,21 @@ roleParser = option (maybeReader $ Just . Just . pack)
    <> short 'r'
    <> metavar "ROLE"
    <> value Nothing
-   <> help "Name of role to project for (if nothing, project all participants)"
+   <> help "Name of role to project for"
 
-textArgument :: Mod ArgumentFields Text -> Parser Text
-textArgument = argument (eitherReader $ Right . pack)
+outputParser :: Parser (Maybe Text)
+outputParser = option (maybeReader $ Just . Just . pack)
+    $ long "output"
+   <> short 'o'
+   <> metavar "FILE"
+   <> value Nothing
+   <> help "Output to FILE"
+
+inputParser :: Parser (Maybe Text)
+inputParser = argument (maybeReader $ Just . Just . pack)
+    $ metavar "FILE"
+   <> value Nothing
+   <> help "Input to FILE"
 
 withInfo :: Parser a -> String -> ParserInfo a
 withInfo opts = info (helper <*> opts) . progDesc

@@ -31,7 +31,7 @@ library:
 executables:
   timeout-sesstype-cli:
     main:                Main.hs
-    source-dirs:         app/cli
+    source-dirs:         app
     ghc-options:
     - -threaded
     - -rtsopts
