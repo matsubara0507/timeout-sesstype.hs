@@ -126,9 +126,9 @@ guarded meta gamma ps (Timeout meta' _) = if
   | otherwise -> ((&&) `on` guarded meta gamma ps) (meta' ^. #normal) (meta' ^. #abend)
 
 marge :: TimeoutMeta LocalType -> Projection GlobalType (TimeoutMeta LocalType)
-marge meta g = if
-  | meta ^. #normal == meta ^. #abend -> pure meta
-  | otherwise -> do
+marge meta g
+  | meta ^. #normal == meta ^. #abend = pure meta
+  | otherwise = do
       ms1 <- label (meta ^. #normal) g
       ms2 <- label (meta ^. #abend) g
       diff ms1 ms2 meta g
@@ -136,7 +136,7 @@ marge meta g = if
 diff :: Message -> Message -> (TimeoutMeta LocalType) -> Projection GlobalType (TimeoutMeta LocalType)
 diff ms1 ms2 meta g
   | ms1 /= ms2 = pure meta
-  | otherwise = throwError ("match messages", g)
+  | otherwise  = throwError ("match messages", g)
 
 label :: LocalType -> Projection GlobalType Message
 label (Recv meta _) _ = pure $ meta ^. #message
@@ -151,8 +151,8 @@ label' :: GlobalType -> Projection GlobalType Message
 label' (Comm meta g') g = do
   p <- reader fst
   if
-    | meta ^. #to == p -> pure $ meta ^. #message
+    | meta ^. #to == p   -> pure $ meta ^. #message
     | meta ^. #from /= p -> label' g' g
-    | otherwise -> throwError ("no start recieve", g)
+    | otherwise          -> throwError ("no start recieve", g)
 label' (Rec _ g') g = label' g' g
 label' _ g          = throwError ("no start recieve", g)
