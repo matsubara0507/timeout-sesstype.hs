@@ -40,12 +40,14 @@ executables:
     - timeout-sesstype
 
 tests:
-  timeout-sesstype-test:
-    main:                Spec.hs
+  test:
+    main:                Driver.hs
     source-dirs:         test
     ghc-options:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
+    - tasty
+    - tasty-hunit
     - timeout-sesstype
