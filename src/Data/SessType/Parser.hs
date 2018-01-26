@@ -5,18 +5,18 @@
 
 module Data.SessType.Parser where
 
-import           Prelude                    hiding (LT)
+import           Prelude                    hiding (LT, lines)
 
 import           Data.Extensible
 import           Data.SessType.Syntax
-import           Data.Text                  (Text, pack)
+import           Data.Text                  (Text, lines, pack)
 import           Text.Megaparsec
 import           Text.Megaparsec.Char       (alphaNumChar, char, lowerChar,
                                              space, string, upperChar)
 import           Text.Megaparsec.Char.Lexer (float)
 
 readGlobalType :: Text -> Maybe GlobalType
-readGlobalType = parseMaybe globalType
+readGlobalType = parseMaybe globalType . mconcat . lines
 
 type Parser = Parsec Error Text
 
