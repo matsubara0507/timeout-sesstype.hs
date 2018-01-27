@@ -38,7 +38,7 @@ projectCmd opts =
     Nothing  -> pretty . projectionAll
 
 eshow :: ProjectionError -> Text
-eshow (emessage, g) = mconcat [emessage, " on: ", pretty g]
+eshow err = mconcat [err ^. #message, " on: ", pretty $ err ^. #target]
 
 type Options = Record
   '[ "subcmd" >: Cmd
