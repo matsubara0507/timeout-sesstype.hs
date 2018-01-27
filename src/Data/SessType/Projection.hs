@@ -94,7 +94,7 @@ checkOwner :: (LocalType, LocalType, LocalType) -> Projection Bool
 checkOwner (t1,t2,t3) = andM [ssnd t1, ercv t1, ssnd t2, ssnd t3]
 
 checkNotOwner ::
-  (TimeoutMeta GlobalType) -> (LocalType, LocalType, LocalType) -> Projection Bool
+  TimeoutMeta GlobalType -> (LocalType, LocalType, LocalType) -> Projection Bool
 checkNotOwner meta (t1,t2,t3) = do
   p <- reader (view #role)
   andM
@@ -139,8 +139,8 @@ ercv _                 = pure False
 guarded ::
   TimeoutMeta GlobalType -> Set Participant -> GlobalType -> Projection Bool
 guarded meta ps (Comm meta' gt') = if
-  | meta ^. #owner == meta' ^. #to && any (meta' ^. #from ==) ps -> pure True
-  | any (meta' ^. #from ==) ps -> guarded meta (Set.insert (meta' ^. #to) ps) gt'
+  | meta ^. #owner == meta' ^. #to && elem (meta' ^. #from) ps -> pure True
+  | elem (meta' ^. #from) ps -> guarded meta (Set.insert (meta' ^. #to) ps) gt'
   | otherwise -> guarded meta ps gt'
 guarded meta ps (Rec _ gt') = guarded meta ps gt'
 guarded meta ps (RVar var) = do
@@ -161,7 +161,7 @@ marge meta
       ms2 <- label (meta ^. #abend)
       diff ms1 ms2 meta
 
-diff :: Message -> Message -> (TimeoutMeta LocalType) -> Projection (TimeoutMeta LocalType)
+diff :: Message -> Message -> TimeoutMeta LocalType -> Projection (TimeoutMeta LocalType)
 diff ms1 ms2 meta
   | ms1 /= ms2 = pure meta
   | otherwise  = throwWithTarget "match messages"

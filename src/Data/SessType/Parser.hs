@@ -8,6 +8,7 @@ module Data.SessType.Parser where
 import           Prelude                    hiding (LT, lines)
 
 import           Data.Extensible
+import           Data.Functor               (($>))
 import           Data.SessType.Syntax
 import           Data.Text                  (Text, lines, pack)
 import           Text.Megaparsec
@@ -37,7 +38,7 @@ globalTypeS :: Parser GlobalType
 globalTypeS = try commEnd <|> communication
 
 commEnd :: Parser GlobalType
-commEnd = keyword "end" *> pure CommEnd
+commEnd = keyword "end" $> CommEnd
 
 recVar :: Parser GlobalType
 recVar = RVar <$> (space *> variable <* space)
@@ -74,8 +75,8 @@ timeConstraint = do
   op <- try le <|> lt
   op clock <$> float
   where
-    le = keyword "<=" *> pure LE
-    lt = keyword "<"  *> pure LT
+    le = keyword "<=" $> LE
+    lt = keyword "<"  $> LT
 
 participant :: Parser Participant
 participant = fmap pack $ (:) <$> upperChar <*> many alphaNumChar
@@ -87,7 +88,7 @@ variable :: Parser Var
 variable = message
 
 keyword :: (MonadParsec e s m, Token s ~ Char) => Tokens s -> m ()
-keyword s = (space *> string s <* space) *> pure ()
+keyword s = (space *> string s <* space) $> ()
 
 betweenTuple ::
   (MonadParsec e s m, Token s ~ Char)
