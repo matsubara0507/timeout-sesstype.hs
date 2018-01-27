@@ -40,6 +40,50 @@ For more options, use the `-h` flag
 $ timeout-sesstype-cli -h
 ```
 
+## Parsing
+
+double quote keyword `"hoge"` is ignore space on around, but single quote keyword `'a'` is not ignore space.
+
+```
+-- Common
+ident    = [a-z][A-Za-z0-9]*
+role     = [A-Z][A-Za-z0-9]*
+message  = ident
+var      = ident
+space    = ' '*
+delta    = clock "<" time
+         | clock "<=" time
+clock    = ident
+time     = [0-9]+'.'[0-9]+
+
+-- Global Type
+global      = role "->" role ":" message "." global
+            | recur
+            | var
+            | end
+            | timeout
+recur       = '*' var "." global
+end         = "end"
+timeout     = role '@' '[' space delta "," sync_global space ']' "." global'
+global'     = "(" global "," global ")"
+sync_global = role "->" role ":" message "." sync_global | end
+
+-- Local Type
+local      = role "!" message "." local
+           | role "!" message "." local
+           | lrecur
+           | lend
+           | ltimeout
+lrecur     = '*' var "." local
+lend       = "end"
+ltimeout   = role '@' '[' space delta "," sync_local space ']' "." local'
+local'     = "(" local "," local ")"
+           | local
+sync_local = role "!" message "." sync_global
+           | role "?" message "." sync_global
+           | lend
+```
+
 ## Acknowledgement
 
 This tool is greatly inspired by [nickng's `sesstype-cli.rs`](https://github.com/nickng/sesstype-cli.rs).
