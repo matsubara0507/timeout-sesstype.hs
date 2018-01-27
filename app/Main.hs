@@ -61,7 +61,7 @@ options = hsequence
 
 cmdParser :: Parser Cmd
 cmdParser = subparser
-   $ command "parser" (pure ParseCmd `withInfo` "Parse a sesstype file")
+   $ command "parse" (pure ParseCmd `withInfo` "Parse a sesstype file")
   <> command "project"
       (ProjectCmd <$> projectParser `withInfo` "Perform endpoint projection on the given session type")
 
