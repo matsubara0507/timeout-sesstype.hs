@@ -17,6 +17,8 @@ class Pretty a where
 instance Pretty GlobalType where
   pretty (Comm meta g') =
     mconcat [meta ^. #from, " -> ", meta ^. #to, " : ", meta ^. #message, " . ", pretty g']
+  pretty (Comm' meta g') =
+    mconcat [meta ^. #from, " ~> ", meta ^. #to, " : ", meta ^. #message, " . ", pretty g']
   pretty (Rec var g') =
     mconcat ["μ", var, " . ", pretty g']
   pretty (RVar var) = var

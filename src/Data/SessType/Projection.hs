@@ -66,6 +66,7 @@ projection' = do
         | meta ^. #from == p -> Send (shrink meta)
         | meta ^. #to   == p -> Recv (shrink meta)
         | otherwise -> id
+    Comm' _ _ -> throwWithTarget "Intermediate state"
     Rec var gt' -> do
       t' <- local (updateGamma var gt') (put gt' *> projection')
       return $ case t' of
@@ -142,6 +143,7 @@ guarded meta ps (Comm meta' gt') = if
   | meta ^. #owner == meta' ^. #to && elem (meta' ^. #from) ps -> pure True
   | elem (meta' ^. #from) ps -> guarded meta (Set.insert (meta' ^. #to) ps) gt'
   | otherwise -> guarded meta ps gt'
+guarded _ _ (Comm' _ _) = throwWithTarget "Intermediate state"
 guarded meta ps (Rec _ gt') = guarded meta ps gt'
 guarded meta ps (RVar var) = do
   gamma <- reader (view #recVars)
