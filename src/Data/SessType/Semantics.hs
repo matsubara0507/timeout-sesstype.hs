@@ -14,6 +14,7 @@ import           Control.Monad        (join)
 import           Data.Extensible
 import           Data.Map             (Map)
 import qualified Data.Map             as Map
+import           Data.SessType.Queue
 import           Data.SessType.Syntax
 import           Data.Set             (Set)
 import qualified Data.Set             as Set
@@ -22,6 +23,7 @@ import           Data.Text            (Text)
 type LTSError = Text
 
 type ClockAssign = Map Clock (Maybe Time)
+type Queues = Map (Participant, Participant) (Queue Message)
 
 initClock :: Maybe Time -> Set Clock -> ClockAssign
 initClock v = Map.fromSet (const v)
@@ -53,7 +55,7 @@ class Transition a where
   transition :: TransAction -> ST a -> Either LTSError (ST a)
 
 instance Transition GlobalType where
-  data ST GlobalType = G ClockAssign GlobalType deriving (Show)
+  data ST GlobalType = G ClockAssign GlobalType deriving (Show, Eq)
   init = flip G <*> (initClock Nothing . clocks)
   peel (G _ gt) = gt
   transition (TimeElapse t) (G nu gt) =
@@ -67,9 +69,19 @@ instance Transition GlobalType where
         (G nu' gt') <- transition act (G nu gt)
         return $ G nu' (Comm meta' gt')
     | otherwise -> Left "no transition pattern"
+  transition act@(RecvAction meta) (G nu (Comm meta' gt)) = if
+    | not $ elem (meta ^. #from) [meta' ^. #from, meta' ^. #to] -> do
+        (G nu' gt') <- transition act (G nu gt)
+        return $ G nu' (Comm meta' gt')
+    | otherwise -> Left "no transition pattern"
   transition act@(RecvAction meta) (G nu (Comm' meta' gt)) = if
     | meta == meta' ->
         pure $ G nu gt
+    | meta ^. #to /= meta' ^. #to -> do
+        (G nu' gt') <- transition act (G nu gt)
+        return $ G nu' (Comm' meta' gt')
+    | otherwise -> Left "no transition pattern"
+  transition act@(SendAction meta) (G nu (Comm' meta' gt)) = if
     | meta ^. #to /= meta' ^. #to -> do
         (G nu' gt') <- transition act (G nu gt)
         return $ G nu' (Comm' meta' gt')
