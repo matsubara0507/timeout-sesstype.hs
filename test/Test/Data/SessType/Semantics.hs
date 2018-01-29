@@ -20,7 +20,7 @@ gt3 = Comm (#from @= "C" <: #to @= "D" <: #message @= "hello" <: nil) gt1
 gt4 = Comm (#from @= "C" <: #to @= "D" <: #message @= "hello" <: nil) gt2
 gt5 = Comm (#from @= "C" <: #to @= "D" <: #message @= "hello" <: nil) CommEnd
 gt6 = Rec "t" $ Comm (#from @= "A" <: #to @= "B" <: #message @= "hello" <: nil) $ RVar "t"
-gt7 = Comm' (#from @= "A" <: #to @= "B" <: #message @= "hello" <: nil) $ gt6
+gt7 = Comm' (#from @= "A" <: #to @= "B" <: #message @= "hello" <: nil) gt6
 gt8 =
   Timeout
      ( #owner @= "A"
@@ -111,7 +111,7 @@ test_globalTransition =
             $ init gt8
       ) @?= Left "no transition pattern"
   , testCase "time elapse: bottom" $
-      (transition (time 10) $ init gt1) @?= Right (init gt1)
+      transition (time 10) (init gt1) @?= Right (init gt1)
   , testCase "fail: time elapse: ready" $
       fmap peel (transition (time 10) <=< transition (send ("A","B") "ping") $ init gt8) @?= Left "no transition pattern"
   ]

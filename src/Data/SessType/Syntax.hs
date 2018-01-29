@@ -83,7 +83,7 @@ class ToClock a where
 instance ToClock GlobalType where
   clocks (Comm _ gt) = clocks gt
   clocks (Rec _ gt)  = clocks gt
-  clocks (Timeout meta _) = mconcat $
+  clocks (Timeout meta _) = mconcat
     [clocks (meta ^. #delta), clocks (meta ^. #normal), clocks (meta ^. #abend)]
   clocks _ = mempty
 
@@ -91,7 +91,7 @@ instance ToClock LocalType where
   clocks (Send _ lt) = clocks lt
   clocks (Recv _ lt) = clocks lt
   clocks (RecL _ lt) = clocks lt
-  clocks (TimeoutL meta _) = mconcat $
+  clocks (TimeoutL meta _) = mconcat
     [clocks (meta ^. #delta), clocks (meta ^. #normal), clocks (meta ^. #abend)]
   clocks _ = mempty
 
@@ -106,7 +106,27 @@ instance Recursion GlobalType where
   replaceRVar v gt (Comm meta gt') = Comm meta (replaceRVar v gt gt')
   replaceRVar v gt (Comm' meta gt') = Comm' meta (replaceRVar v gt gt')
   replaceRVar v gt (Rec v' gt') = Rec v' (replaceRVar v gt gt')
-  replaceRVar v gt (RVar v') = if v' == v then gt else (RVar v')
+  replaceRVar v gt (RVar v') = if v' == v then gt else RVar v'
   replaceRVar _ _ CommEnd = CommEnd
   replaceRVar v gt (Timeout meta gt') =
-    Timeout (meta & #normal %~ (replaceRVar v gt) & #abend %~ (replaceRVar v gt)) gt'
+    Timeout (meta & #normal %~ replaceRVar v gt & #abend %~ replaceRVar v gt) gt'
+
+data TransAction
+  = SendAction CommMeta
+  | RecvAction CommMeta
+  | TimeElapse Time
+  deriving (Show, Eq)
+
+send, recv :: (Participant, Participant) -> Message -> TransAction
+send (p,q) ms = SendAction $ #from @= p <: #to @= q <: #message @= ms <: nil
+recv (p,q) ms = RecvAction $ #from @= p <: #to @= q <: #message @= ms <: nil
+
+time :: Time -> TransAction
+time = TimeElapse
+
+isTimeElapse :: TransAction -> Bool
+isTimeElapse (TimeElapse _) = True
+isTimeElapse _              = False
+
+bot :: Maybe Time
+bot = Nothing

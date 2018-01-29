@@ -7,14 +7,13 @@
 
 module Data.SessType.Semantics where
 
-import           Prelude              hiding (LT, init)
+import           Prelude              hiding (LT)
 
 import           Control.Lens         ((^.))
 import           Control.Monad        (join)
-import           Data.Extensible
 import           Data.Map             (Map)
 import qualified Data.Map             as Map
-import           Data.SessType.Queue
+import           Data.Sequence        (Seq)
 import           Data.SessType.Syntax
 import           Data.Set             (Set)
 import qualified Data.Set             as Set
@@ -23,30 +22,10 @@ import           Data.Text            (Text)
 type LTSError = Text
 
 type ClockAssign = Map Clock (Maybe Time)
-type Queues = Map (Participant, Participant) (Queue Message)
+type Queues = Map (Participant, Participant) (Seq Message)
 
 initClock :: Maybe Time -> Set Clock -> ClockAssign
 initClock v = Map.fromSet (const v)
-
-data TransAction
-  = SendAction CommMeta
-  | RecvAction CommMeta
-  | TimeElapse Time
-  deriving (Show, Eq)
-
-send, recv :: (Participant, Participant) -> Message -> TransAction
-send (p,q) ms = SendAction $ #from @= p <: #to @= q <: #message @= ms <: nil
-recv (p,q) ms = RecvAction $ #from @= p <: #to @= q <: #message @= ms <: nil
-
-time :: Time -> TransAction
-time = TimeElapse
-
-isTimeElapse :: TransAction -> Bool
-isTimeElapse (TimeElapse _) = True
-isTimeElapse _              = False
-
-bot :: Maybe Time
-bot = Nothing
 
 class Transition a where
   data ST a
@@ -65,12 +44,12 @@ instance Transition GlobalType where
   transition act@(SendAction meta) (G nu (Comm meta' gt)) = if
     | meta == meta' ->
         pure $ G nu (Comm' meta' gt)
-    | not $ elem (meta ^. #from) [meta' ^. #from, meta' ^. #to] -> do
+    | notElem (meta ^. #from) [meta' ^. #from, meta' ^. #to] -> do
         (G nu' gt') <- transition act (G nu gt)
         return $ G nu' (Comm meta' gt')
     | otherwise -> Left "no transition pattern"
   transition act@(RecvAction meta) (G nu (Comm meta' gt)) = if
-    | not $ elem (meta ^. #from) [meta' ^. #from, meta' ^. #to] -> do
+    | notElem (meta ^. #from) [meta' ^. #from, meta' ^. #to] -> do
         (G nu' gt') <- transition act (G nu gt)
         return $ G nu' (Comm meta' gt')
     | otherwise -> Left "no transition pattern"
@@ -120,7 +99,7 @@ replaceClock delta t nu =
   Set.foldr (Map.adjust $ const t) nu $ clocks delta
 
 addClocks :: Time -> ClockAssign -> ClockAssign
-addClocks t = Map.map (fmap ((+) t))
+addClocks t = Map.map (fmap (+ t))
 
 models :: ClockAssign -> TConstraint -> Bool
 models nu (LT v t) = maybe False (<  t) . join $ Map.lookup v nu
