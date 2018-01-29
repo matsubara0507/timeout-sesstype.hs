@@ -58,15 +58,15 @@ test_globalTransition =
       fmap peel (transition (send ("A","B") "hello") $ init gt3) @?= Right gt4
   , testCase "fail: send messgae: misstake message" $
       fmap peel (transition (send ("A","B") "hello!") $ init gt1) @?= Left "no transition pattern"
-  , testCase "fail: send messgae: recieve action" $
+  , testCase "fail: send messgae: receive action" $
       fmap peel (transition (recv ("A","B") "hello") $ init gt1) @?= Left "no transition pattern"
-  , testCase "recieve message" $
+  , testCase "receive message" $
       fmap peel (transition (recv ("A","B") "hello") $ init gt2) @?= Right CommEnd
-  , testCase "async recieve message" $
+  , testCase "async receive message" $
       fmap peel (transition (recv ("A","B") "hello") $ init gt4) @?= Right gt5
-  , testCase "fail: recieve message: misstake message" $
+  , testCase "fail: receive message: misstake message" $
       fmap peel (transition (recv ("A","B") "hello!") $ init gt2) @?= Left "no transition pattern"
-  , testCase "fail: recieve message: send action" $
+  , testCase "fail: receive message: send action" $
       fmap peel (transition (send ("A","B") "hello") $ init gt2) @?= Left "no transition pattern"
   , testCase "recursion" $
       fmap peel (transition (send ("A","B") "hello") $ init gt6) @?= Right gt7

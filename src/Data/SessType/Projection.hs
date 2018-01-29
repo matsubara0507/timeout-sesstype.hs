@@ -175,7 +175,7 @@ label (RVarL var) = do
   gamma <- reader (view #recVars)
   local (over #recVars mempty) $
     maybe (throwWithTarget "undefined rec var") label' (Map.lookup var gamma)
-label _ = throwWithTarget "no start recieve"
+label _ = throwWithTarget "no start receive"
 
 label' :: GlobalType -> Projection Message
 label' (Comm meta gt') = do
@@ -183,6 +183,6 @@ label' (Comm meta gt') = do
   if
     | meta ^. #to == p   -> pure $ meta ^. #message
     | meta ^. #from /= p -> label' gt'
-    | otherwise          -> throwWithTarget "no start recieve"
+    | otherwise          -> throwWithTarget "no start receive"
 label' (Rec _ gt') = label' gt'
-label' _ = throwWithTarget "no start recieve"
+label' _ = throwWithTarget "no start receive"

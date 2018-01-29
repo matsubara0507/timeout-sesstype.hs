@@ -111,8 +111,8 @@ rdy (Comm' _ gt)      = rdy gt
 rdy (Rec _ gt)        = rdy gt
 rdy (RVar _)          = Nothing
 rdy CommEnd           = Nothing
-rdy (Timeout meta gt) = const (meta ^. #delta) <$> recieves gt
+rdy (Timeout meta gt) = const (meta ^. #delta) <$> receives gt
 
-recieves :: GlobalType -> Maybe Participant
-recieves (Comm' meta _) = pure $ meta ^. #to
-recieves _              = Nothing
+receives :: GlobalType -> Maybe Participant
+receives (Comm' meta _) = pure $ meta ^. #to
+receives _              = Nothing
