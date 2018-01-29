@@ -5,31 +5,60 @@
 
 module Main where
 
-import           Control.Lens        ((&), (^.))
+import           Prelude             hiding (init)
+
+import           Control.Lens        ((^.))
 import           Data.Extensible
 import           Data.Monoid         ((<>))
 import           Data.SessType
 import           Data.Text           (Text, pack, unpack)
 import qualified Data.Text.IO        as T
 import           Options.Applicative
+import           System.IO           (hFlush, stdout)
 
 main :: IO ()
 main = do
   opts <- execParser $
     options `withInfo` "A command-line interface to the sesstype mini language"
-  txt <-
+  input <-
     case opts ^. #input of
       Just file -> T.readFile (unpack file)
       Nothing   -> T.getContents
-  exec (opts ^. #subcmd) txt &
-    case opts ^. #output of
-      Just file -> T.writeFile (unpack file)
-      Nothing   -> T.putStrLn
+  case readGlobalType input of
+    Nothing -> T.putStrLn "cannot parse."
+    Just gt -> exec opts gt
 
-exec :: Cmd -> Text -> Text
-exec ParseCmd = maybe "cannot parse." pretty . readGlobalType
-exec (ProjectCmd opts) =
-  maybe "cannot parse." (projectCmd opts) . readGlobalType
+exec :: Options -> GlobalType -> IO ()
+exec opts gt =
+  case opts ^. #subcmd of
+    ParseCmd         -> outputs opts $ pretty gt
+    ProjectCmd opts' -> outputs opts $ pretty (projectCmd opts' gt)
+    ReplCmd -> do
+      T.putStrLn "input action: `P,Q!message` or `P,Q?message` or float (e.g. 1.0)"
+      T.putStrLn (pretty gt)
+      repl run (init gt)
+
+outputs :: Options -> Text -> IO ()
+outputs opts =
+  case opts ^. #output of
+    Just file -> T.writeFile (unpack file)
+    Nothing   -> T.putStrLn
+
+repl :: (Text -> a -> Maybe (a, Text)) -> a -> IO ()
+repl f st = do
+  T.putStr ">> "
+  hFlush stdout
+  input <- T.getLine
+  case f input st of
+    Nothing            -> T.putStrLn "Leaving."
+    Just (st', output) -> T.putStrLn output *> repl f st'
+
+run :: (Transition a, Pretty a) => Text -> ST a -> Maybe (ST a, Text)
+run ":q" _ = Nothing
+run act st =
+  case maybe (Left "cannot parse.") (`transition` st) $ readAction act of
+    Left err  -> pure (st, err)
+    Right st' -> pure (st', pretty $ peel st')
 
 projectCmd :: ProjectCmdOpts -> GlobalType -> Text
 projectCmd opts =
@@ -49,6 +78,7 @@ type Options = Record
 data Cmd
   = ParseCmd
   | ProjectCmd ProjectCmdOpts
+  | ReplCmd
 
 type ProjectCmdOpts = Record '[ "role" >: Maybe Participant ]
 
@@ -64,6 +94,7 @@ cmdParser = subparser
    $ command "parse" (pure ParseCmd `withInfo` "Parse a sesstype file")
   <> command "project"
       (ProjectCmd <$> projectParser `withInfo` "Perform endpoint projection on the given session type")
+  <> command "repl" (pure ReplCmd `withInfo` "REPL for LTS of session type")
 
 projectParser :: Parser ProjectCmdOpts
 projectParser = hsequence

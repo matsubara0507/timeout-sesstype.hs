@@ -34,6 +34,31 @@ A: A@[x < 10.0, B!ping . B?pong . end] . (B!ok . end, B!fail . end)
 B: A@[x < 10.0, A?ping . A!pong . end] . (A?ok . end, A?fail . end)
 ```
 
+REPL for session type with labeled transition system
+
+```
+$ stack exec -- timeout-sesstype-cli repl examples/simple_timeout.mpst
+A@[x < 10.0, A -> B : ping . B -> A : pong . end] . (A -> B : ok . end, A -> B : fail . end)
+>> A,B!ping
+A@[x < 10.0, A ~> B : ping . B -> A : pong . end] . (A -> B : ok . end, A -> B : fail . end)
+>> 3.0
+A@[x < 10.0, A ~> B : ping . B -> A : pong . end] . (A -> B : ok . end, A -> B : fail . end)
+>> A,B?ping
+A@[x < 10.0, B -> A : pong . end] . (A -> B : ok . end, A -> B : fail . end)
+>> 2.0
+A@[x < 10.0, B -> A : pong . end] . (A -> B : ok . end, A -> B : fail . end)
+>> B,A!pong
+A@[x < 10.0, B ~> A : pong . end] . (A -> B : ok . end, A -> B : fail . end)
+>> B,A?pong
+A@[x < 10.0, end] . (A -> B : ok . end, A -> B : fail . end)
+>> A,B!ok
+A ~> B : ok . end
+>> A,B?ok
+end
+>> :q
+Leaving.
+```
+
 For more options, use the `-h` flag
 
 ```

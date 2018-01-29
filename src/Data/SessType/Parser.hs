@@ -19,6 +19,9 @@ import           Text.Megaparsec.Char.Lexer (float)
 readGlobalType :: Text -> Maybe GlobalType
 readGlobalType = parseMaybe globalType . mconcat . lines
 
+readAction :: Text -> Maybe TransAction
+readAction = parseMaybe action
+
 type Parser = Parsec Error Text
 
 type Error = ErrorItem Char
@@ -103,3 +106,20 @@ betweenTuple open fstP sep sndP close = do
   keyword sep
   b <- sndP <* space <* char close
   return (a, b)
+
+action :: Parser TransAction
+action = space *> (try timeElapse <|> commAction) <* space
+
+timeElapse :: Parser TransAction
+timeElapse = time <$> float
+
+commAction :: Parser TransAction
+commAction = do
+  p1 <- participant
+  _ <- char ','
+  p2 <- participant
+  commAction' p1 p2
+  where
+    commAction' p1 p2
+        = char '!' *> (send (p1, p2) <$> message)
+      <|> char '?' *> (recv (p1, p2) <$> message)
